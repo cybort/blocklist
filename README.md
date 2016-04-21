@@ -1,0 +1,2 @@
+# blocklist
+domain block list
