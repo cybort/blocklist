@@ -1,6 +1,6 @@
 #!/bin/bash
-echo "" > toblock.lst
-#curl -s https://raw.githubusercontent.com/vokins/yhosts/master/hosts.txt | grep -v "^#" | grep "127.0.0.1" | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics" | awk '{print $2}' > toblock.lst
+#echo "" > toblock.lst
+curl -s https://raw.githubusercontent.com/vokins/yhosts/master/hosts.txt | grep -v "^#" | grep "127.0.0.1" | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics" | awk '{print $2}' > toblock.lst
 curl -s http://dn-mwsl-hosts.qbox.me/hosts | grep -v "^#" | grep "181.215.102.78"  | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics"  | awk '{print $2}' >> toblock.lst
 curl -s https://s3.amazonaws.com/lists.disconnect.me/simple_malvertising.txt | grep -v "^#" | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics"  >> toblock.lst
 curl -s https://adaway.org/hosts.txt | grep -v "^#" | grep "127.0.0.1"   | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics" | awk '{print $2}' >> toblock.lst
