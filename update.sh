@@ -15,5 +15,10 @@ curl -s "http://adblock.gjtech.net/?format=unix-hosts" | grep -v "^#" | grep "12
 curl -s http://optimate.dl.sourceforge.net/project/adzhosts/HOSTS.txt | grep -v "^#" | grep "127.0.0.1"  | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics"  | awk '{print $2}' >> toblock.lst
 curl -s -L https://github.com/StevenBlack/hosts/raw/master/hosts | grep -v "^#" | grep "0.0.0.0" | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics"  | awk '{print $2}' >> toblock.lst
 curl -s -L https://github.com/yous/YousList/raw/master/hosts.txt | grep -v "^#" | grep "127.0.0.1"   | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics" | awk '{print $2}' >> toblock.lst
+sed -i 's/telemetry.appex.bing.net:443/telemetry.appex.bing.net/g' toblock.lst
+sed -i 's/ssl-nl.persgroep.edgekey.neto/ssl-nl.persgroep.edgekey.net/g' toblock.lst
+sed -i 's/ssl-nl.persgroep.edgekey.netO/ssl-nl.persgroep.edgekey.net/g' toblock.lst
+sed -i 's/theoads.com./theoads.com/g' toblock.lst
+sed -i '/130.211.230.53/d' toblock.lst
 sed 's/\r$//' toblock.lst | sort -n | uniq  > toblock.new
 mv toblock.new toblock.lst
