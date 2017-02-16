@@ -20,5 +20,6 @@ sed -i 's/ssl-nl.persgroep.edgekey.neto/ssl-nl.persgroep.edgekey.net/g' toblock.
 sed -i 's/ssl-nl.persgroep.edgekey.netO/ssl-nl.persgroep.edgekey.net/g' toblock.lst
 sed -i 's/theoads.com./theoads.com/g' toblock.lst
 sed -i '/130.211.230.53/d' toblock.lst
+sed -i '/msedge/d' toblock.lst
 sed 's/\r$//' toblock.lst | sort -n | uniq  > toblock.new
 mv toblock.new toblock.lst
