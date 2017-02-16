@@ -23,3 +23,8 @@ sed -i '/130.211.230.53/d' toblock.lst
 sed -i '/msedge/d' toblock.lst
 sed 's/\r$//' toblock.lst | sort -n | uniq  > toblock.new
 mv toblock.new toblock.lst
+cp toblock.lst toblock-without-shorturl.lst
+sed -i '/^db\.tt$/d' toblock-without-shorturl.lst
+sed -i '/^j\.mp$/d' toblock-without-shorturl.lst
+sed -i '/^bit\.ly$/d' toblock-without-shorturl.lst
+sed -i '/^goo\.gl$/d' toblock-without-shorturl.lst
