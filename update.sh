@@ -11,10 +11,10 @@ curl -s http://sysctl.org/cameleon/hosts | grep -v "^#" | grep "127.0.0.1"  | gr
 curl -s http://someonewhocares.org/hosts/hosts | grep -v "^#" | grep "127.0.0.1"  | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics"  | awk '{print $2}' >> toblock.lst
 curl -s http://www.malwaredomainlist.com/hostslist/hosts.txt  | grep -v "^#" | grep "127.0.0.1"  | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics"  | awk '{print $2}' >> toblock.lst
 curl -s http://www.hostsfile.org/Downloads/hosts.txt | grep -v "^#" | grep "127.0.0.1"  | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics"  | awk '{print $2}' >> toblock.lst
-curl -s "http://adblock.gjtech.net/?format=unix-hosts" | grep -v "^#" | grep "127.0.0.1"  | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics"  | awk '{print $2}' >> toblock.lst
+#curl -s "http://adblock.gjtech.net/?format=unix-hosts" | grep -v "^#" | grep "127.0.0.1"  | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics"  | awk '{print $2}' >> toblock.lst
 curl -s http://optimate.dl.sourceforge.net/project/adzhosts/HOSTS.txt | grep -v "^#" | grep "127.0.0.1"  | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics"  | awk '{print $2}' >> toblock.lst
-curl -s -L https://github.com/StevenBlack/hosts/raw/master/hosts | grep -v "^#" | grep "0.0.0.0" | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics"  | awk '{print $2}' >> toblock.lst
-curl -s -L https://github.com/yous/YousList/raw/master/hosts.txt | grep -v "^#" | grep "127.0.0.1"   | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics" | awk '{print $2}' >> toblock.lst
+curl -s https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts | grep -v "^#" | grep "0.0.0.0" | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics"  | awk '{print $2}' >> toblock.lst
+curl -s https://raw.githubusercontent.com/yous/YousList/master/hosts.txt | grep -v "^#" | grep "127.0.0.1"   | grep -v "\.iqiyi\.com" | grep -v "\.youku\.com" | grep -v "google\-analytics" | awk '{print $2}' >> toblock.lst
 sed -i 's/telemetry.appex.bing.net:443/telemetry.appex.bing.net/g' toblock.lst
 sed -i 's/ssl-nl.persgroep.edgekey.neto/ssl-nl.persgroep.edgekey.net/g' toblock.lst
 sed -i 's/ssl-nl.persgroep.edgekey.netO/ssl-nl.persgroep.edgekey.net/g' toblock.lst
