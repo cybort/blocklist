@@ -36,11 +36,12 @@ var (
 		`bit.ly`,
 		`goo.gl`,
 	}
-	whitelist = []string{
-		//`iqiyi.com`,
-		//`youku.com`,
-		`google-analytics`,
-		`msedge`,
+	whitelist = []whitelistChecker{
+		//suffix(`.iqiyi.com`),
+		//suffix(`.youku.com`),
+		contains(`google-analytics`),
+		suffix(`msedge.net`),
+		regex(`^amazonaws.com$`),
 	}
 	tlds               = make(map[string]bool)
 	effectiveTLDsNames []string
@@ -54,6 +55,27 @@ const (
 	effectiveTLDsNamesURL    = `https://publicsuffix.org/list/effective_tld_names.dat`
 )
 
+type whitelistChecker func(s string) bool
+
+func contains(pattern string) whitelistChecker {
+	return func(s string) bool {
+		return strings.Contains(s, pattern)
+	}
+}
+
+func suffix(pattern string) whitelistChecker {
+	return func(s string) bool {
+		return strings.HasSuffix(s, pattern)
+	}
+}
+
+func regex(pattern string) whitelistChecker {
+	r := regexp.MustCompile(pattern)
+	return func(s string) bool {
+		return r.MatchString(s)
+	}
+}
+
 func downloadRemoteContent(remoteLink string) (io.ReadCloser, error) {
 	response, err := http.Get(remoteLink)
 	if err != nil {
@@ -65,8 +87,8 @@ func downloadRemoteContent(remoteLink string) (io.ReadCloser, error) {
 }
 
 func process(r io.ReadCloser) (domains []string, err error) {
-	validLine, _ := regexp.Compile(`^\d+\.\d+\.\d+\.\d+\s+([\w\d\-\._]+)`)
-	validDomain, _ := regexp.Compile(`^((xn--)?([\w\d\-_]+)*\.)+\w{2,}$`)
+	validLine := regexp.MustCompile(`^\d+\.\d+\.\d+\.\d+\s+([\w\d\-\._]+)`)
+	validDomain := regexp.MustCompile(`^((xn--)?([\w\d\-_]+)*\.)+\w{2,}$`)
 	scanner := bufio.NewScanner(r)
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
@@ -110,8 +132,8 @@ func process(r io.ReadCloser) (domains []string, err error) {
 
 		// remove items in white list
 		inWhitelist := false
-		for _, w := range whitelist {
-			if strings.Contains(domain, w) {
+		for _, wl := range whitelist {
+			if wl(domain) {
 				inWhitelist = true
 				break
 			}
