@@ -29,6 +29,8 @@ var (
 		`https://sourceforge.net/projects/adzhosts/files/HOSTS.txt/download`,
 		`https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts`,
 		`https://raw.githubusercontent.com/yous/YousList/master/hosts.txt`,
+		`https://download.dnscrypt.org/dnscrypt-proxy/blacklists/domains/mybase.txt`,
+		`https://raw.githubusercontent.com/koala0529/adhost/master/adhosts`,
 	}
 	shortURLs = []string{
 		`db.tt`,
@@ -88,7 +90,7 @@ func downloadRemoteContent(remoteLink string) (io.ReadCloser, error) {
 
 func process(r io.ReadCloser) (domains []string, err error) {
 	validLine := regexp.MustCompile(`^\d+\.\d+\.\d+\.\d+\s+([\w\d\-\._]+)`)
-	validDomain := regexp.MustCompile(`^((xn--)?([\w\d\-_]+)*\.)+\w{2,}$`)
+	validDomain := regexp.MustCompile(`^((xn--)?[\w\d]+([\w\d\-_]+)*\.)+\w{2,}$`)
 	scanner := bufio.NewScanner(r)
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
