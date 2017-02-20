@@ -31,6 +31,14 @@ var (
 		`https://raw.githubusercontent.com/yous/YousList/master/hosts.txt`,
 		`https://download.dnscrypt.org/dnscrypt-proxy/blacklists/domains/mybase.txt`,
 		`https://raw.githubusercontent.com/koala0529/adhost/master/adhosts`,
+		`http://hosts-file.net/.%5Cad_servers.txt`,
+		`http://mirror1.malwaredomains.com/files/justdomains`,
+		`http://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt`,
+		`https://s3.amazonaws.com/lists.disconnect.me/simple_malvertising.txt`,
+		`https://s3.amazonaws.com/lists.disconnect.me/simple_malware.txt`,
+		`https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt`,
+		`https://raw.githubusercontent.com/azet12/KADhosts/master/KADhosts.txt`,
+		`http://someonewhocares.org/hosts/hosts`,
 	}
 	shortURLs = []string{
 		`db.tt`,
