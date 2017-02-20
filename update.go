@@ -54,8 +54,9 @@ var (
 		regex(`^amazonaws.com$`),
 	}
 	tlds               = make(map[string]bool)
+	tldsMutex          sync.Mutex
 	effectiveTLDsNames []string
-	mutex              sync.RWMutex
+	mutex              sync.Mutex
 )
 
 const (
@@ -181,7 +182,9 @@ func generateTLDs(wg *sync.WaitGroup) {
 		scanner := bufio.NewScanner(r)
 		scanner.Split(bufio.ScanLines)
 		for scanner.Scan() {
+			tldsMutex.Lock()
 			tlds[strings.ToLower(scanner.Text())] = true
+			tldsMutex.Unlock()
 		}
 		r.Close()
 	}
@@ -205,7 +208,13 @@ func generateEffectiveTLDsNames(wg *sync.WaitGroup) {
 			}
 			c := line[0]
 			if c >= byte('a') && c <= byte('z') || c >= byte('0') && c <= byte('9') {
-				effectiveTLDsNames = append(effectiveTLDsNames, line)
+				if strings.IndexByte(line, byte('.')) < 0 {
+					tldsMutex.Lock()
+					tlds[line] = true
+					tldsMutex.Unlock()
+				} else {
+					effectiveTLDsNames = append(effectiveTLDsNames, "."+line)
+				}
 			}
 		}
 		r.Close()
