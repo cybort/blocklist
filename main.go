@@ -1,5 +1,18 @@
 package main
 
+import (
+	"bufio"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"regexp"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+)
+
 var (
 	urls = []string{
 		`https://raw.githubusercontent.com/vokins/yhosts/master/hosts.txt`,
@@ -13,7 +26,7 @@ var (
 		`http://someonewhocares.org/hosts/hosts`,
 		`http://www.malwaredomainlist.com/hostslist/hosts.txt`,
 		`http://www.hostsfile.org/Downloads/hosts.txt`,
-		`http://optimate.dl.sourceforge.net/project/adzhosts/HOSTS.txt`,
+		`https://sourceforge.net/projects/adzhosts/files/HOSTS.txt/download`,
 		`https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts`,
 		`https://raw.githubusercontent.com/yous/YousList/master/hosts.txt`,
 	}
@@ -23,31 +36,197 @@ var (
 		`bit.ly`,
 		`goo.gl`,
 	}
+	whitelist = []string{
+		//`iqiyi.com`,
+		//`youku.com`,
+		`google-analytics`,
+	}
+	tlds               = make(map[string]bool)
+	effectiveTLDsNames []string
+	mutex              sync.RWMutex
 )
 
-func download(u string) []byte {
-	return nil
+const (
+	blocklist                = `toblock.lst`
+	blocklistWithoutShortURL = `toblock-without-shorturl.lst`
+	tldsURL                  = `http://data.iana.org/TLD/tlds-alpha-by-domain.txt`
+	effectiveTLDsNamesURL    = `https://publicsuffix.org/list/effective_tld_names.dat`
+)
+
+func downloadRemoteContent(remoteLink string) (io.ReadCloser, error) {
+	response, err := http.Get(remoteLink)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return response.Body, nil
 }
 
-func extractDomainNames(raw []byte) []string {
-	// remove items that don't match xxxx.xxxx.xxxx format
-	// remove items that don't match TLDs
-	// remove duplicate items
-	// remove items in white list
-	return nil
+func process(r io.ReadCloser) (domains []string, err error) {
+	validLine, _ := regexp.Compile(`^\d+\.\d+\.\d+\.\d+\s+([\w\d\-\._]+)`)
+	validDomain, _ := regexp.Compile(`^((xn--)?([\w\d\-_]+)*\.)+\w{2,}$`)
+	scanner := bufio.NewScanner(r)
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		// extract valid lines
+		domain := strings.ToLower(scanner.Text())
+		ss := validLine.FindStringSubmatch(domain)
+		if len(ss) <= 1 {
+			if !validDomain.MatchString(domain) {
+				log.Println("invalid line:", domain)
+				continue
+			}
+		} else {
+			domain = ss[1]
+		}
+
+		// remove items that don't match xxxx.xxxx.xxxx format
+		if !validDomain.MatchString(domain) {
+			log.Println("invalid domain:", domain)
+			continue
+		}
+
+		// remove items that don't match TLDs
+		matchTLD := false
+		dd := strings.Split(domain, ".")
+		lastSection := dd[len(dd)-1]
+		_, matchTLD = tlds[lastSection]
+
+		if !matchTLD {
+			for _, v := range effectiveTLDsNames {
+				if strings.HasSuffix(domain, v) {
+					matchTLD = true
+					break
+				}
+			}
+		}
+
+		if !matchTLD {
+			log.Println("don't match TLDs:", domain)
+			continue
+		}
+
+		// remove items in white list
+		inWhitelist := false
+		for _, w := range whitelist {
+			if strings.Contains(domain, w) {
+				inWhitelist = true
+				break
+			}
+		}
+		if inWhitelist {
+			log.Println("in whitelist:", domain)
+			continue
+		}
+		domains = append(domains, domain)
+	}
+	r.Close()
+	return
 }
 
-func saveToFile(domains []string) error {
-	return nil
+func saveToFile(content string, path string) error {
+	file, err := os.OpenFile(path, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
+	if err == nil {
+		file.WriteString(content)
+		file.Close()
+		return nil
+	}
+
+	log.Println(err)
+	return err
+}
+
+func generateTLDs(wg *sync.WaitGroup) {
+	err := os.ErrNotExist
+	var r io.ReadCloser
+	for i := 0; i < 10 && err != nil; time.Sleep(5 * time.Second) {
+		r, err = downloadRemoteContent(tldsURL)
+		i++
+	}
+	if err == nil {
+		scanner := bufio.NewScanner(r)
+		scanner.Split(bufio.ScanLines)
+		for scanner.Scan() {
+			tlds[strings.ToLower(scanner.Text())] = true
+		}
+		r.Close()
+	}
+	wg.Done()
+}
+
+func generateEffectiveTLDsNames(wg *sync.WaitGroup) {
+	err := os.ErrNotExist
+	var r io.ReadCloser
+	for i := 0; i < 10 && err != nil; time.Sleep(5 * time.Second) {
+		r, err = downloadRemoteContent(effectiveTLDsNamesURL)
+		i++
+	}
+	if err == nil {
+		scanner := bufio.NewScanner(r)
+		scanner.Split(bufio.ScanLines)
+		for scanner.Scan() {
+			line := strings.ToLower(scanner.Text())
+			if len(line) == 0 {
+				continue
+			}
+			c := line[0]
+			if c >= byte('a') && c <= byte('z') || c >= byte('0') && c <= byte('9') {
+				effectiveTLDsNames = append(effectiveTLDsNames, line)
+			}
+		}
+		r.Close()
+	}
+	wg.Done()
+}
+
+func getDomains(u string, domains map[string]bool, wg *sync.WaitGroup) {
+	// download hosts
+	err := os.ErrNotExist
+	var r io.ReadCloser
+	for i := 0; i < 10 && err != nil; time.Sleep(5 * time.Second) {
+		r, err = downloadRemoteContent(u)
+		i++
+	}
+	if err == nil {
+		d, _ := process(r)
+		for _, domain := range d {
+			// so could remove duplicates
+			mutex.Lock()
+			domains[domain] = true
+			mutex.Unlock()
+		}
+	}
+	wg.Done()
 }
 
 func main() {
-	for _, u := range urls {
-		// download hosts
-		content := download(u)
-		// extract domain names
-		domains := extractDomainNames(content)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go generateTLDs(&wg)
+	go generateEffectiveTLDsNames(&wg)
+	wg.Wait()
 
-		saveToFile(domains)
+	domains := make(map[string]bool)
+	for _, u := range urls {
+		wg.Add(1)
+		go getDomains(u, domains, &wg)
 	}
+	wg.Wait()
+
+	for _, v := range shortURLs {
+		delete(domains, v)
+	}
+	d := make([]string, len(domains))
+	i := 0
+	for k := range domains {
+		d[i] = k
+		i++
+	}
+	sort.Strings(d)
+	// extract domain names
+	c := strings.Join(d, "\n")
+	saveToFile(c, blocklistWithoutShortURL)
+	s := strings.Join(shortURLs, "\n")
+	saveToFile(c+s, blocklist)
 }
