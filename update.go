@@ -40,6 +40,7 @@ var (
 		//`iqiyi.com`,
 		//`youku.com`,
 		`google-analytics`,
+		`msedge`,
 	}
 	tlds               = make(map[string]bool)
 	effectiveTLDsNames []string
