@@ -209,8 +209,8 @@ func main() {
 	wg.Wait()
 
 	domains := make(map[string]bool)
+	wg.Add(len(urls))
 	for _, u := range urls {
-		wg.Add(1)
 		go getDomains(u, domains, &wg)
 	}
 	wg.Wait()
