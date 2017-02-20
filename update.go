@@ -227,6 +227,8 @@ func main() {
 	// extract domain names
 	c := strings.Join(d, "\n")
 	saveToFile(c, blocklistWithoutShortURL)
-	s := strings.Join(shortURLs, "\n")
-	saveToFile(c+s, blocklist)
+	d = append(d, shortURLs...)
+	sort.Strings(d)
+	c = strings.Join(d, "\n")
+	saveToFile(c, blocklist)
 }
