@@ -1,6 +1,8 @@
 # blocklist
 domain block list
 
+[![Build Status](https://travis-ci.org/missdeer/blocklist.svg?branch=master)](https://travis-ci.org/missdeer/blocklist)
+
 ## Download
 
 ### domains of short url services are blocked
