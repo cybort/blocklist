@@ -51,7 +51,7 @@ var (
 		//suffix(`.youku.com`),
 		contains(`google-analytics`),
 		suffix(`msedge.net`),
-		regex(`^amazonaws.com$`),
+		equal(`amazonaws.com`),
 	}
 	tlds               = make(map[string]bool)
 	tldsMutex          sync.Mutex
@@ -77,6 +77,18 @@ func contains(pattern string) whitelistChecker {
 func suffix(pattern string) whitelistChecker {
 	return func(s string) bool {
 		return strings.HasSuffix(s, pattern)
+	}
+}
+
+func prefix(pattern string) whitelistChecker {
+	return func(s string) bool {
+		return strings.HasPrefix(s, pattern)
+	}
+}
+
+func equal(pattern string) whitelistChecker {
+	return func(s string) bool {
+		return pattern == s
 	}
 }
 
