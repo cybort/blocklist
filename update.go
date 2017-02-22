@@ -52,6 +52,7 @@ var (
 		contains(`google-analytics`),
 		suffix(`msedge.net`),
 		equal(`amazonaws.com`),
+		equal(`mp.weixin.qq.com`),
 	}
 	tlds               = make(map[string]bool)
 	tldsMutex          sync.Mutex
