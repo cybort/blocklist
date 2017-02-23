@@ -110,7 +110,7 @@ func downloadRemoteContent(remoteLink string) (io.ReadCloser, error) {
 }
 
 func process(r io.ReadCloser) (domains []string, err error) {
-	validLine := regexp.MustCompile(`^\d+\.\d+\.\d+\.\d+\s+([\w\d\-\._]+)`)
+	validLine := regexp.MustCompile(`^(127\.0\.0\.1|0\.0\.0\.0|::1)\s+([\w\d\-\._]+)`)
 	validDomain := regexp.MustCompile(`^((xn--)?[\w\d]+([\w\d\-_]+)*\.)+\w{2,}$`)
 	scanner := bufio.NewScanner(r)
 	scanner.Split(bufio.ScanLines)
@@ -124,7 +124,7 @@ func process(r io.ReadCloser) (domains []string, err error) {
 				continue
 			}
 		} else {
-			domain = ss[1]
+			domain = ss[2]
 		}
 
 		// remove items that don't match xxxx.xxxx.xxxx format
