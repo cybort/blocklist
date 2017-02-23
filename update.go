@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -14,32 +15,30 @@ import (
 )
 
 var (
-	urls = []string{
-		`https://raw.githubusercontent.com/vokins/yhosts/master/hosts.txt`,
-		`http://dn-mwsl-hosts.qbox.me/hosts`,
-		`https://s3.amazonaws.com/lists.disconnect.me/simple_malvertising.txt`,
-		`https://adaway.org/hosts.txt`,
-		`http://winhelp2002.mvps.org/hosts.txt`,
-		`http://hosts-file.net/ad_servers.txt`,
-		`https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext`,
-		`http://sysctl.org/cameleon/hosts`,
-		`http://someonewhocares.org/hosts/hosts`,
-		`http://www.malwaredomainlist.com/hostslist/hosts.txt`,
-		`http://www.hostsfile.org/Downloads/hosts.txt`,
-		`https://sourceforge.net/projects/adzhosts/files/HOSTS.txt/download`,
-		`https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts`,
-		`https://raw.githubusercontent.com/yous/YousList/master/hosts.txt`,
-		`https://download.dnscrypt.org/dnscrypt-proxy/blacklists/domains/mybase.txt`,
-		`https://raw.githubusercontent.com/koala0529/adhost/master/adhosts`,
-		`http://hosts-file.net/.%5Cad_servers.txt`,
-		`http://mirror1.malwaredomains.com/files/justdomains`,
-		`http://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt`,
-		`https://s3.amazonaws.com/lists.disconnect.me/simple_malvertising.txt`,
-		`https://s3.amazonaws.com/lists.disconnect.me/simple_malware.txt`,
-		`https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt`,
-		`https://raw.githubusercontent.com/azet12/KADhosts/master/KADhosts.txt`,
-		`http://someonewhocares.org/hosts/hosts`,
-		`https://raw.githubusercontent.com/lack006/Android-Hosts-L/master/hosts_files/2016_hosts/AD`,
+	sourceURLValidatorMap = map[string]lineValidator{
+		`https://raw.githubusercontent.com/vokins/yhosts/master/hosts.txt`:                              hostLine("127.0.0.1"),
+		`http://dn-mwsl-hosts.qbox.me/hosts`:                                                            hostLine("191.101.229.116"),
+		`https://adaway.org/hosts.txt`:                                                                  hostLine("127.0.0.1"),
+		`http://winhelp2002.mvps.org/hosts.txt`:                                                         hostLine("0.0.0.0"),
+		`http://hosts-file.net/ad_servers.txt`:                                                          hostLine("127.0.0.1"),
+		`https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext`: hostLine("127.0.0.1"),
+		`http://sysctl.org/cameleon/hosts`:                                                              hostLine("127.0.0.1"),
+		`http://someonewhocares.org/hosts/hosts`:                                                        hostLine("127.0.0.1"),
+		`http://www.malwaredomainlist.com/hostslist/hosts.txt`:                                          hostLine("127.0.0.1"),
+		`http://www.hostsfile.org/Downloads/hosts.txt`:                                                  hostLine("127.0.0.1"),
+		`https://sourceforge.net/projects/adzhosts/files/HOSTS.txt/download`:                            hostLine("127.0.0.1"),
+		`https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts`:                              hostLine("0.0.0.0"),
+		`https://raw.githubusercontent.com/yous/YousList/master/hosts.txt`:                              hostLine("0.0.0.0"),
+		`https://download.dnscrypt.org/dnscrypt-proxy/blacklists/domains/mybase.txt`:                    domainListLine(),
+		`https://raw.githubusercontent.com/koala0529/adhost/master/adhosts`:                             hostLine("127.0.0.1"),
+		`http://hosts-file.net/.%5Cad_servers.txt`:                                                      hostLine("127.0.0.1"),
+		`http://mirror1.malwaredomains.com/files/justdomains`:                                           domainListLine(),
+		`http://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt`:                                      domainListLine(),
+		`https://s3.amazonaws.com/lists.disconnect.me/simple_malvertising.txt`:                          domainListLine(),
+		`https://s3.amazonaws.com/lists.disconnect.me/simple_malware.txt`:                               domainListLine(),
+		`https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt`:                              domainListLine(),
+		`https://raw.githubusercontent.com/azet12/KADhosts/master/KADhosts.txt`:                         hostLine("0.0.0.0"),
+		`https://raw.githubusercontent.com/lack006/Android-Hosts-L/master/hosts_files/2016_hosts/AD`:    hostLine("127.0.0.1"),
 	}
 	shortURLs = []string{
 		`db.tt`,
@@ -67,6 +66,35 @@ const (
 	tldsURL                  = `http://data.iana.org/TLD/tlds-alpha-by-domain.txt`
 	effectiveTLDsNamesURL    = `https://publicsuffix.org/list/effective_tld_names.dat`
 )
+
+type lineValidator func(s string) string
+
+func hostLine(addr string) lineValidator {
+	regexPattern := fmt.Sprintf(`^(%s)\s+([\w\d\-\._]+)`, strings.Replace(addr, `.`, `\.`, -1))
+	validDomain := regexp.MustCompile(`^((xn--)?[\w\d]+([\w\d\-_]+)*\.)+\w{2,}$`)
+	validLine := regexp.MustCompile(regexPattern)
+	return func(s string) string {
+		ss := validLine.FindStringSubmatch(s)
+		if len(ss) > 1 {
+			if validDomain.MatchString(ss[2]) {
+				return ss[2]
+			}
+		}
+		log.Println("invalid line:", s)
+		return ""
+	}
+}
+
+func domainListLine() lineValidator {
+	validDomain := regexp.MustCompile(`^((xn--)?[\w\d]+([\w\d\-_]+)*\.)+\w{2,}$`)
+	return func(s string) string {
+		if validDomain.MatchString(s) {
+			return s
+		}
+		log.Println("invalid domain:", s)
+		return ""
+	}
+}
 
 type whitelistChecker func(s string) bool
 
@@ -111,59 +139,49 @@ func downloadRemoteContent(remoteLink string) (io.ReadCloser, error) {
 	return response.Body, nil
 }
 
-func process(r io.ReadCloser) (domains []string, err error) {
-	validLine := regexp.MustCompile(`^(127\.0\.0\.1|0\.0\.0\.0|191\.101\.229\.116)\s+([\w\d\-\._]+)`)
-	validDomain := regexp.MustCompile(`^((xn--)?[\w\d]+([\w\d\-_]+)*\.)+\w{2,}$`)
+func matchTLDs(domain string) bool {
+	dd := strings.Split(domain, ".")
+	lastSection := dd[len(dd)-1]
+	if _, ok := tlds[lastSection]; ok {
+		return true
+	}
+
+	for _, v := range effectiveTLDsNames {
+		if strings.HasSuffix(domain, v) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func inWhitelist(domain string) bool {
+	for _, wl := range whitelist {
+		if wl(domain) {
+			return true
+		}
+	}
+	return false
+}
+
+func process(r io.ReadCloser, validator lineValidator) (domains []string, err error) {
 	scanner := bufio.NewScanner(r)
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
 		// extract valid lines
-		domain := strings.ToLower(scanner.Text())
-		ss := validLine.FindStringSubmatch(domain)
-		if len(ss) <= 1 {
-			if !validDomain.MatchString(domain) {
-				log.Println("invalid line:", domain)
-				continue
-			}
-		} else {
-			domain = ss[2]
-		}
-
-		// remove items that don't match xxxx.xxxx.xxxx format
-		if !validDomain.MatchString(domain) {
-			log.Println("invalid domain:", domain)
+		domain := validator(strings.ToLower(scanner.Text()))
+		if domain == "" {
 			continue
 		}
 
 		// remove items that don't match TLDs
-		matchTLD := false
-		dd := strings.Split(domain, ".")
-		lastSection := dd[len(dd)-1]
-		_, matchTLD = tlds[lastSection]
-
-		if !matchTLD {
-			for _, v := range effectiveTLDsNames {
-				if strings.HasSuffix(domain, v) {
-					matchTLD = true
-					break
-				}
-			}
-		}
-
-		if !matchTLD {
+		if !matchTLDs(domain) {
 			log.Println("don't match TLDs:", domain)
 			continue
 		}
 
 		// remove items in white list
-		inWhitelist := false
-		for _, wl := range whitelist {
-			if wl(domain) {
-				inWhitelist = true
-				break
-			}
-		}
-		if inWhitelist {
+		if inWhitelist(domain) {
 			log.Println("in whitelist:", domain)
 			continue
 		}
@@ -236,7 +254,7 @@ func generateEffectiveTLDsNames(wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func getDomains(u string, domains map[string]bool, wg *sync.WaitGroup) {
+func getDomains(u string, v lineValidator, domains map[string]bool, wg *sync.WaitGroup) {
 	// download hosts
 	err := os.ErrNotExist
 	var r io.ReadCloser
@@ -245,7 +263,7 @@ func getDomains(u string, domains map[string]bool, wg *sync.WaitGroup) {
 		i++
 	}
 	if err == nil {
-		d, _ := process(r)
+		d, _ := process(r, v)
 		for _, domain := range d {
 			// so could remove duplicates
 			mutex.Lock()
@@ -264,9 +282,9 @@ func main() {
 	wg.Wait()
 
 	domains := make(map[string]bool)
-	wg.Add(len(urls))
-	for _, u := range urls {
-		go getDomains(u, domains, &wg)
+	wg.Add(len(sourceURLValidatorMap))
+	for u, v := range sourceURLValidatorMap {
+		go getDomains(u, v, domains, &wg)
 	}
 	wg.Wait()
 
