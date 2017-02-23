@@ -39,6 +39,7 @@ var (
 		`https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt`,
 		`https://raw.githubusercontent.com/azet12/KADhosts/master/KADhosts.txt`,
 		`http://someonewhocares.org/hosts/hosts`,
+		`https://raw.githubusercontent.com/lack006/Android-Hosts-L/master/hosts_files/2016_hosts/AD`,
 	}
 	shortURLs = []string{
 		`db.tt`,
@@ -111,7 +112,7 @@ func downloadRemoteContent(remoteLink string) (io.ReadCloser, error) {
 }
 
 func process(r io.ReadCloser) (domains []string, err error) {
-	validLine := regexp.MustCompile(`^(127\.0\.0\.1|0\.0\.0\.0|::1)\s+([\w\d\-\._]+)`)
+	validLine := regexp.MustCompile(`^(127\.0\.0\.1|0\.0\.0\.0|191\.101\.229\.116)\s+([\w\d\-\._]+)`)
 	validDomain := regexp.MustCompile(`^((xn--)?[\w\d]+([\w\d\-_]+)*\.)+\w{2,}$`)
 	scanner := bufio.NewScanner(r)
 	scanner.Split(bufio.ScanLines)
