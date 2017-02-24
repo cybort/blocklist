@@ -47,12 +47,11 @@ var (
 		`goo.gl`,
 	}
 	whitelist = []whitelistChecker{
-		//suffix(`.iqiyi.com`),
-		//suffix(`.youku.com`),
 		contains(`google-analytics`),
 		suffix(`msedge.net`),
 		equal(`amazonaws.com`),
 		equal(`mp.weixin.qq.com`),
+		regex(`^s3[\d\w\-]*.amazonaws.com`),
 	}
 	tlds               = make(map[string]bool)
 	tldsMutex          sync.Mutex
