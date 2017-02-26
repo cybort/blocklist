@@ -52,6 +52,12 @@ var (
 		equal(`amazonaws.com`),
 		equal(`mp.weixin.qq.com`),
 		regex(`^s3[\d\w\-]*.amazonaws.com`),
+		suffix(`internetdownloadmanager.com`),
+		suffix(`.alcohol-soft.com`),
+		equal(`scootersoftware.com`),
+		regex(`[^ad]\.mail\.ru`),
+		regex(`[^ad]\.daum\.net`),
+		regex(`^\w{1,10}\.yandex\.`),
 	}
 	tlds               = make(map[string]bool)
 	tldsMutex          sync.Mutex
