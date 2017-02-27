@@ -59,6 +59,7 @@ var (
 		regex(`[^ad]\.daum\.net`),
 		regex(`^\w{1,10}\.yandex\.`),
 		suffix(`.googlevideo.com`),
+		regex(`^[^\.]+\.elb\.amazonaws\.com`),
 	}
 	tlds               = make(map[string]bool)
 	tldsMutex          sync.Mutex
