@@ -68,7 +68,10 @@ var (
 	tldsMutex          sync.Mutex
 	effectiveTLDsNames []string
 	mutex              sync.Mutex
-	sema               = newSemaphore(15)
+	sema               = newSemaphore(50)
+	finalDomains       = make(map[string]bool)
+	blockDomain        = make(chan string, 20)
+	quit               = make(chan bool)
 )
 
 const (
@@ -212,6 +215,11 @@ func existent(domain string) (bool, error) {
 
 	defer resp.Body.Close()
 
+	if resp.StatusCode != 200 {
+		log.Println(domain, resp.Status)
+		return true, fmt.Errorf("unexpected status code:%s", resp.Status)
+	}
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Println("reading response failed:", domain, err)
@@ -254,18 +262,7 @@ func process(r io.ReadCloser, validator lineValidator) (domains []string, err er
 			log.Println("in whitelist:", domain)
 			continue
 		}
-
-		// remove items that doesn't exist actually
-		for i := 0; i < 10; time.Sleep(3 * time.Second) {
-			exists, err := existent(domain)
-			if err != nil {
-				continue
-			}
-			if exists {
-				domains = append(domains, domain)
-				break
-			}
-		}
+		domains = append(domains, domain)
 	}
 	r.Close()
 	return
@@ -354,13 +351,45 @@ func getDomains(u string, v lineValidator, domains map[string]bool, wg *sync.Wai
 	wg.Done()
 }
 
+func receiveDomains() {
+	for {
+		select {
+		case domain := <-blockDomain:
+			finalDomains[domain] = true
+		case <-quit:
+			return
+		}
+	}
+}
+
+func checkExistent(domain string, wg *sync.WaitGroup) {
+	// remove items that doesn't exist actually
+	for i := 0; i < 10; time.Sleep(3 * time.Second) {
+		exists, err := existent(domain)
+		if err != nil {
+			continue
+		}
+		if exists {
+			blockDomain <- domain
+		} else {
+			log.Println("google dns reports as non-exist:", domain)
+		}
+		break
+	}
+	sema.Release()
+	wg.Done()
+}
+
 func main() {
 	var wg sync.WaitGroup
+
+	// generate TLDs
 	wg.Add(2)
 	go generateTLDs(&wg)
 	go generateEffectiveTLDsNames(&wg)
 	wg.Wait()
 
+	// get blocked domain names
 	domains := make(map[string]bool)
 	wg.Add(len(sourceURLValidatorMap))
 	for u, v := range sourceURLValidatorMap {
@@ -368,17 +397,28 @@ func main() {
 	}
 	wg.Wait()
 
-	for _, v := range shortURLs {
-		delete(domains, v)
+	// remove non-exist domain names
+	go receiveDomains()
+	wg.Add(len(domains))
+	for domain := range domains {
+		sema.Acquire()
+		go checkExistent(domain, &wg)
 	}
-	d := make([]string, len(domains))
+	wg.Wait()
+	quit <- true
+
+	// handle domain names of short URL services
+	for _, v := range shortURLs {
+		delete(finalDomains, v)
+	}
+	d := make([]string, len(finalDomains))
 	i := 0
-	for k := range domains {
+	for k := range finalDomains {
 		d[i] = k
 		i++
 	}
+	// save to file in order
 	sort.Strings(d)
-	// extract domain names
 	c := strings.Join(d, "\n")
 	saveToFile(c, blocklistWithoutShortURL)
 	d = append(d, shortURLs...)
