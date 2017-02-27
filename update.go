@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +17,7 @@ import (
 )
 
 var (
+	httpClient            = &http.Client{}
 	sourceURLValidatorMap = map[string]lineValidator{
 		`https://raw.githubusercontent.com/vokins/yhosts/master/hosts.txt`:                              hostLine("127.0.0.1"),
 		`http://dn-mwsl-hosts.qbox.me/hosts`:                                                            hostLine("191.101.229.116"),
@@ -65,6 +68,7 @@ var (
 	tldsMutex          sync.Mutex
 	effectiveTLDsNames []string
 	mutex              sync.Mutex
+	sema               = newSemaphore(15)
 )
 
 const (
@@ -73,6 +77,25 @@ const (
 	tldsURL                  = `http://data.iana.org/TLD/tlds-alpha-by-domain.txt`
 	effectiveTLDsNamesURL    = `https://publicsuffix.org/list/effective_tld_names.dat`
 )
+
+type semaphore struct {
+	c chan int
+}
+
+func newSemaphore(n int) *semaphore {
+	s := &semaphore{
+		c: make(chan int, n),
+	}
+	return s
+}
+
+func (s *semaphore) Acquire() {
+	s.c <- 0
+}
+
+func (s *semaphore) Release() {
+	<-s.c
+}
 
 type lineValidator func(s string) string
 
@@ -171,6 +194,45 @@ func inWhitelist(domain string) bool {
 	return false
 }
 
+func existent(domain string) (bool, error) {
+	req, err := http.NewRequest("GET", "https://dns.google.com/resolve", nil)
+	if err != nil {
+		log.Println("creating request failed:", domain, err)
+		return true, err
+	}
+	q := req.URL.Query()
+	q.Add("name", domain)
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		log.Println("doing request failed:", domain, err)
+		return true, err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println("reading response failed:", domain, err)
+		return true, err
+	}
+
+	var response struct {
+		Status int `json:"Status"`
+	}
+	if err = json.Unmarshal(body, &response); err != nil {
+		log.Println("unmarshalling response failed:", domain, err)
+		return true, err
+	}
+
+	if response.Status == 3 {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func process(r io.ReadCloser, validator lineValidator) (domains []string, err error) {
 	scanner := bufio.NewScanner(r)
 	scanner.Split(bufio.ScanLines)
@@ -192,7 +254,18 @@ func process(r io.ReadCloser, validator lineValidator) (domains []string, err er
 			log.Println("in whitelist:", domain)
 			continue
 		}
-		domains = append(domains, domain)
+
+		// remove items that doesn't exist actually
+		for i := 0; i < 10; time.Sleep(3 * time.Second) {
+			exists, err := existent(domain)
+			if err != nil {
+				continue
+			}
+			if exists {
+				domains = append(domains, domain)
+				break
+			}
+		}
 	}
 	r.Close()
 	return
