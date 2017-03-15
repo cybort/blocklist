@@ -55,6 +55,7 @@ var (
 		suffix(`.googlevideo.com`),
 		regex(`^[^\.]+\.elb\.amazonaws\.com`),
 		suffix(`.in-addr.arpa`),
+		equal(`analytics.163.com`),
 	}
 	tlds               = make(map[string]bool)
 	tldsMutex          sync.Mutex
