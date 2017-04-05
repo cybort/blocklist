@@ -438,6 +438,7 @@ func main() {
 			i++
 		}
 	}
+	d = d[:i]
 	// save to file in order
 	sort.Strings(d)
 	c = strings.Join(d, "\n")
