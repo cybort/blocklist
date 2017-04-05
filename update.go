@@ -68,10 +68,12 @@ var (
 )
 
 const (
-	blocklist                = `toblock.lst`
-	blocklistWithoutShortURL = `toblock-without-shorturl.lst`
-	tldsURL                  = `http://data.iana.org/TLD/tlds-alpha-by-domain.txt`
-	effectiveTLDsNamesURL    = `https://publicsuffix.org/list/effective_tld_names.dat`
+	blocklist                         = `toblock.lst`
+	blocklistWithoutShortURL          = `toblock-without-shorturl.lst`
+	blocklistOptimized                = `toblock-optimized.lst`
+	blocklistWithoutShortURLOptimized = `toblock-without-shorturl-optimized.lst`
+	tldsURL                           = `http://data.iana.org/TLD/tlds-alpha-by-domain.txt`
+	effectiveTLDsNamesURL             = `https://publicsuffix.org/list/effective_tld_names.dat`
 )
 
 type semaphore struct {
@@ -418,4 +420,30 @@ func main() {
 	sort.Strings(d)
 	c = strings.Join(d, "\n")
 	saveToFile(c, blocklist)
+	// optimized
+	d = make([]string, len(finalDomains))
+	i = 0
+	for k := range finalDomains {
+		pick := true
+		kk := strings.Split(k, ".")
+		for l := 1; l < len(kk); l++ {
+			dn := strings.Join(kk[l:], ".")
+			if _, ok := finalDomains[dn]; ok {
+				pick = false
+				break
+			}
+		}
+		if pick {
+			d[i] = k
+			i++
+		}
+	}
+	// save to file in order
+	sort.Strings(d)
+	c = strings.Join(d, "\n")
+	saveToFile(c, blocklistWithoutShortURLOptimized)
+	d = append(d, shortURLs...)
+	sort.Strings(d)
+	c = strings.Join(d, "\n")
+	saveToFile(c, blocklistOptimized)
 }
