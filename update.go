@@ -57,12 +57,12 @@ var (
 		suffix(`.in-addr.arpa`),
 		equal(`analytics.163.com`),
 	}
-	tlds               = make(map[string]bool)
+	tlds               = make(map[string]struct{})
 	tldsMutex          sync.Mutex
 	effectiveTLDsNames []string
 	mutex              sync.Mutex
 	sema               = newSemaphore(50)
-	finalDomains       = make(map[string]bool)
+	finalDomains       = make(map[string]struct{})
 	blockDomain        = make(chan string, 20)
 	quit               = make(chan bool)
 )
@@ -287,7 +287,7 @@ func generateTLDs(wg *sync.WaitGroup) {
 		scanner.Split(bufio.ScanLines)
 		for scanner.Scan() {
 			tldsMutex.Lock()
-			tlds[strings.ToLower(scanner.Text())] = true
+			tlds[strings.ToLower(scanner.Text())] = struct{}{}
 			tldsMutex.Unlock()
 		}
 		r.Close()
@@ -314,7 +314,7 @@ func generateEffectiveTLDsNames(wg *sync.WaitGroup) {
 			if c >= byte('a') && c <= byte('z') || c >= byte('0') && c <= byte('9') {
 				if strings.IndexByte(line, byte('.')) < 0 {
 					tldsMutex.Lock()
-					tlds[line] = true
+					tlds[line] = struct{}{}
 					tldsMutex.Unlock()
 				} else {
 					effectiveTLDsNames = append(effectiveTLDsNames, "."+line)
@@ -326,7 +326,7 @@ func generateEffectiveTLDsNames(wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func getDomains(u string, v lineValidator, domains map[string]bool, wg *sync.WaitGroup) {
+func getDomains(u string, v lineValidator, domains map[string]struct{}, wg *sync.WaitGroup) {
 	// download hosts
 	err := os.ErrNotExist
 	var r io.ReadCloser
@@ -339,7 +339,7 @@ func getDomains(u string, v lineValidator, domains map[string]bool, wg *sync.Wai
 		for _, domain := range d {
 			// so could remove duplicates
 			mutex.Lock()
-			domains[domain] = true
+			domains[domain] = struct{}{}
 			mutex.Unlock()
 		}
 	}
@@ -350,7 +350,7 @@ func receiveDomains() {
 	for {
 		select {
 		case domain := <-blockDomain:
-			finalDomains[domain] = true
+			finalDomains[domain] = struct{}{}
 		case <-quit:
 			return
 		}
@@ -385,7 +385,7 @@ func main() {
 	wg.Wait()
 
 	// get blocked domain names
-	domains := make(map[string]bool)
+	domains := make(map[string]struct{})
 	wg.Add(len(sourceURLValidatorMap))
 	for u, v := range sourceURLValidatorMap {
 		go getDomains(u, v, domains, &wg)
