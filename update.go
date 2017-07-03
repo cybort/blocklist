@@ -56,6 +56,7 @@ var (
 		regex(`^[^\.]+\.elb\.amazonaws\.com`),
 		suffix(`.in-addr.arpa`),
 		equal(`analytics.163.com`),
+		equal(`behance.net`),
 	}
 	tlds               = make(map[string]struct{})
 	tldsMutex          sync.Mutex
