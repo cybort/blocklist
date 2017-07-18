@@ -36,9 +36,16 @@ var (
 	}
 	shortURLs = []string{
 		`db.tt`,
+		`www.db.tt`,
 		`j.mp`,
+		`www.j.mp`,
 		`bit.ly`,
+		`www.bit.ly`,
+		`pix.bit.ly`,
 		`goo.gl`,
+		`www.goo.gl`,
+		`url.cn`,
+		`qq.com`,
 	}
 	whitelist = []whitelistChecker{
 		contains(`google-analytics`),
@@ -55,6 +62,8 @@ var (
 		suffix(`.googlevideo.com`),
 		regex(`^[^\.]+\.elb\.amazonaws\.com`),
 		suffix(`.in-addr.arpa`),
+		suffix(`.url.cn`),
+		suffix(`.qq.com`),
 		equal(`analytics.163.com`),
 		equal(`behance.net`),
 	}
