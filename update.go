@@ -17,7 +17,6 @@ import (
 )
 
 var (
-	httpClient            = &http.Client{}
 	sourceURLValidatorMap = map[string]lineValidator{
 		`https://raw.githubusercontent.com/notracking/hosts-blocklists/master/hostnames.txt`:         hostLine("0.0.0.0"),
 		`http://dn-mwsl-hosts.qbox.me/hosts`:                                                         hostLine("191.101.229.116"),
@@ -213,6 +212,7 @@ func existent(domain string) (bool, error) {
 	q.Add("name", domain)
 	req.URL.RawQuery = q.Encode()
 
+	httpClient := &http.Client{}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		log.Println("doing request failed:", domain, err)
