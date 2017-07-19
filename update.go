@@ -63,7 +63,8 @@ var (
 		regex(`^[^\.]+\.elb\.amazonaws\.com`),
 		suffix(`.in-addr.arpa`),
 		suffix(`.url.cn`),
-		suffix(`.qq.com`),
+		equal(`qq.com`),
+		equal(`www.qq.com`),
 		equal(`analytics.163.com`),
 		equal(`behance.net`),
 	}
