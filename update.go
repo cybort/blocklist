@@ -66,6 +66,8 @@ var (
 		equal(`www.qq.com`),
 		equal(`analytics.163.com`),
 		equal(`behance.net`),
+		suffix(`.verisign.com`),
+		contains(`mozilla`),
 	}
 	tlds               = make(map[string]struct{})
 	tldsMutex          sync.Mutex
